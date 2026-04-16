@@ -1,0 +1,1 @@
+alter table public.user_settings alter column accent set default 'green';
