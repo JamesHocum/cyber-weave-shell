@@ -1,4 +1,6 @@
 // Lovable AI Gateway streaming chat edge function
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -19,14 +21,51 @@ const MODE_SYSTEM_PROMPTS: Record<string, string> = {
     "You are the Neural Command interpreter. Help the operator translate intent into terminal commands. Be terse and operational.",
 };
 
+const ALLOWED_MODELS = new Set([
+  "google/gemini-3-flash-preview",
+  "google/gemini-3.1-pro-preview",
+  "google/gemini-2.5-pro",
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-flash-lite",
+  "openai/gpt-5.2",
+  "openai/gpt-5",
+  "openai/gpt-5-mini",
+  "openai/gpt-5-nano",
+]);
+
+const MAX_MESSAGES = 50;
+const MAX_MESSAGE_CHARS = 32000;
+
 function supportsReasoning(model: string): boolean {
   return model.startsWith("openai/gpt-5") || model === "google/gemini-3.1-pro-preview" || model === "google/gemini-2.5-pro";
+}
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // --- AuthN: require valid Supabase JWT ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+
     const { messages, model, mode, reasoning_effort } = await req.json() as {
       messages: ChatMessage[];
       model?: string;
@@ -34,12 +73,31 @@ Deno.serve(async (req) => {
       reasoning_effort?: "low" | "medium" | "high";
     };
 
+    // --- Input validation ---
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return json({ error: "messages must be a non-empty array" }, 400);
+    }
+    if (messages.length > MAX_MESSAGES) {
+      return json({ error: `Too many messages (max ${MAX_MESSAGES})` }, 400);
+    }
+    for (const m of messages) {
+      if (!m || typeof m.content !== "string" || !["system", "user", "assistant"].includes(m.role)) {
+        return json({ error: "Invalid message format" }, 400);
+      }
+      if (m.content.length > MAX_MESSAGE_CHARS) {
+        return json({ error: `Message too long (max ${MAX_MESSAGE_CHARS} chars)` }, 400);
+      }
+    }
+    if (model && !ALLOWED_MODELS.has(model)) {
+      return json({ error: "Invalid model" }, 400);
+    }
+    if (reasoning_effort && !["low", "medium", "high"].includes(reasoning_effort)) {
+      return json({ error: "Invalid reasoning_effort" }, 400);
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "LOVABLE_API_KEY not configured" }, 500);
     }
 
     const systemPrompt = MODE_SYSTEM_PROMPTS[mode ?? "chat"] ?? MODE_SYSTEM_PROMPTS.chat;
@@ -65,23 +123,14 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded — slow down or wait a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return json({ error: "Rate limit exceeded — slow down or wait a moment." }, 429);
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Lovable AI credits exhausted — top up at Settings → Workspace → Usage." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return json({ error: "Lovable AI credits exhausted — top up at Settings → Workspace → Usage." }, 402);
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: `AI gateway error: ${response.status}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: `AI gateway error: ${response.status}` }, 500);
     }
 
     return new Response(response.body, {
@@ -89,9 +138,6 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("chat error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
