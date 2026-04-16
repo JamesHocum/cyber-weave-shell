@@ -41,6 +41,7 @@ export interface StreamChatOptions {
   messages: ChatMessage[];
   model: string;
   mode?: "chat" | "code" | "neural";
+  reasoningEffort?: "low" | "medium" | "high";
   signal?: AbortSignal;
   onDelta: (chunk: string) => void;
   onDone: () => void;
@@ -55,7 +56,12 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
         "Content-Type": "application/json",
         Authorization: `Bearer ${ANON}`,
       },
-      body: JSON.stringify({ messages: options.messages, model: options.model, mode: options.mode ?? "chat" }),
+      body: JSON.stringify({
+        messages: options.messages,
+        model: options.model,
+        mode: options.mode ?? "chat",
+        reasoning_effort: options.reasoningEffort,
+      }),
       signal: options.signal,
     });
 
