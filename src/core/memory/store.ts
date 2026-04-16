@@ -9,10 +9,27 @@ export interface MemoryState {
   updatedAt: string;
 }
 
-const MEMORY_KEY = "cyberpunk-termux-memory-v1";
+const MEMORY_KEY = "cyberpunk-termux-memory-v2";
+
+const VALID_MODEL_IDS = new Set([
+  "google/gemini-3-flash-preview",
+  "google/gemini-3.1-pro-preview",
+  "google/gemini-2.5-pro",
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-flash-lite",
+  "openai/gpt-5.2",
+  "openai/gpt-5",
+  "openai/gpt-5-mini",
+  "openai/gpt-5-nano",
+  "google/gemini-2.5-flash-image",
+  "google/gemini-3.1-flash-image-preview",
+  "google/gemini-3-pro-image-preview",
+]);
+
+const DEFAULT_MODEL = "google/gemini-3-flash-preview";
 
 const defaultMemoryState: MemoryState = {
-  preferredModel: "openrouter/auto",
+  preferredModel: DEFAULT_MODEL,
   recentCommands: [],
   workflowNotes: [],
   ui: { compactMode: false, accent: "cyan" },
@@ -25,11 +42,15 @@ export function loadMemoryState(): MemoryState {
     const raw = localStorage.getItem(MEMORY_KEY);
     if (!raw) return defaultMemoryState;
     const parsed = JSON.parse(raw) as MemoryState;
-    return {
+    const merged: MemoryState = {
       ...defaultMemoryState,
       ...parsed,
       ui: { ...defaultMemoryState.ui, ...(parsed.ui ?? {}) },
     };
+    if (!VALID_MODEL_IDS.has(merged.preferredModel)) {
+      merged.preferredModel = DEFAULT_MODEL;
+    }
+    return merged;
   } catch {
     return defaultMemoryState;
   }
