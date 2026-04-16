@@ -16,17 +16,26 @@ import {
 import { executeTerminalInput } from "@/core/terminal/executor";
 import { commandRegistry } from "@/core/commands/registry";
 import type { CommandContext } from "@/core/commands/registry";
+import { useAuth } from "@/integrations/auth/AuthProvider";
+import { useSettings } from "@/integrations/settings/SettingsProvider";
+import {
+  insertMessage,
+  listMessages,
+  touchConversation,
+} from "@/integrations/conversations/api";
 import { Menu, Send, Sparkles, Code2, Image as ImageIcon, Terminal as TerminalIcon, Square } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 type Mode = "neural" | "chat" | "code" | "image";
 
 interface NeuralPanelProps {
+  conversationId: string;
   selectedModel: string;
   onModelChange?: (model: string) => void;
   runBuild?: CommandContext["runBuild"];
   generateImage?: CommandContext["generateImage"];
   onCommandOutput?: (lines: string[]) => void;
+  onTitleUpdate?: () => void;
 }
 
 interface ChatEntry {
@@ -46,22 +55,47 @@ const MODE_META: Record<Mode, { label: string; icon: React.ComponentType<{ class
   image:  { label: "Image",  icon: ImageIcon,    hint: "Generate images with Nano Banana" },
 };
 
-export function NeuralPanel({ selectedModel, onModelChange, runBuild, generateImage: imgFromCtx, onCommandOutput }: NeuralPanelProps) {
+export function NeuralPanel({ conversationId, selectedModel, onModelChange, runBuild, generateImage: imgFromCtx, onCommandOutput, onTitleUpdate }: NeuralPanelProps) {
+  const { user } = useAuth();
+  const { settings } = useSettings();
   const [memory, setMemory] = useState(loadMemoryState());
   const [mode, setMode] = useState<Mode>("neural");
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatEntry[]>([
-    {
-      id: id(),
-      role: "assistant",
-      content:
-        "**Neural interface online.** Switch modes with the bar above. Try `help`, `build android`, or just chat.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatEntry[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted messages when conversation changes
+  useEffect(() => {
+    if (!conversationId) return;
+    listMessages(conversationId)
+      .then((rows) => {
+        if (rows.length === 0) {
+          setMessages([
+            {
+              id: id(),
+              role: "assistant",
+              content:
+                "**Neural interface online.** Switch modes with the bar above. Try `help`, `build android`, or just chat.",
+            },
+          ]);
+        } else {
+          setMessages(
+            rows
+              .filter((r) => r.role !== "system")
+              .map((r) => ({
+                id: r.id,
+                role: r.role as "user" | "assistant",
+                content: r.content,
+                imageUrl: r.image_url ?? undefined,
+              }))
+          );
+        }
+      })
+      .catch((e) => toast({ title: "Failed to load conversation", description: e.message, variant: "destructive" }));
+  }, [conversationId]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -98,9 +132,32 @@ export function NeuralPanel({ selectedModel, onModelChange, runBuild, generateIm
     setBusy(false);
   };
 
+  const persist = async (
+    role: "user" | "assistant",
+    content: string,
+    imageUrl?: string | null,
+    model?: string | null
+  ) => {
+    if (!user || !conversationId) return;
+    try {
+      await insertMessage({ conversationId, userId: user.id, role, content, imageUrl, model });
+    } catch (e) {
+      console.error("persist failed", e);
+    }
+  };
+
+  const maybeAutoTitle = async (firstUserText: string) => {
+    if (!user || !conversationId || messages.length > 1) return;
+    const title = firstUserText.slice(0, 60).trim() || "New session";
+    await touchConversation(conversationId, { title, mode, model: selectedModel });
+    onTitleUpdate?.();
+  };
+
   const runCommand = async (raw: string) => {
     setBusy(true);
     append({ role: "user", content: raw });
+    void persist("user", raw);
+    void maybeAutoTitle(raw);
     const next = pushRecentCommand(raw);
     setMemory(next);
 
@@ -118,9 +175,13 @@ export function NeuralPanel({ selectedModel, onModelChange, runBuild, generateIm
         ...(exec.result.logs ?? []),
       ];
       onCommandOutput?.(lines);
-      append({ role: "assistant", content: "```\n" + lines.join("\n") + "\n```" });
+      const reply = "```\n" + lines.join("\n") + "\n```";
+      append({ role: "assistant", content: reply });
+      void persist("assistant", reply);
     } catch (e) {
-      append({ role: "assistant", content: `**Error:** ${e instanceof Error ? e.message : String(e)}` });
+      const msg = `**Error:** ${e instanceof Error ? e.message : String(e)}`;
+      append({ role: "assistant", content: msg });
+      void persist("assistant", msg);
     } finally {
       setBusy(false);
     }
@@ -129,6 +190,8 @@ export function NeuralPanel({ selectedModel, onModelChange, runBuild, generateIm
   const runChatStream = async (raw: string, requestedMode: "chat" | "code" | "neural") => {
     setBusy(true);
     append({ role: "user", content: raw });
+    void persist("user", raw);
+    void maybeAutoTitle(raw);
 
     const history: ChatMessage[] = messages
       .filter((m) => !m.imageUrl)
@@ -143,6 +206,7 @@ export function NeuralPanel({ selectedModel, onModelChange, runBuild, generateIm
       messages: history,
       model: selectedModel,
       mode: requestedMode,
+      reasoningEffort: settings.reasoning_effort,
       signal: ctrl.signal,
       onDelta: (chunk) => {
         assembled += chunk;
@@ -156,6 +220,7 @@ export function NeuralPanel({ selectedModel, onModelChange, runBuild, generateIm
         setMessages((prev) =>
           prev.map((m, i) => (i === prev.length - 1 ? { ...m, _streaming: false } : m))
         );
+        if (assembled) void persist("assistant", assembled, null, selectedModel);
       },
     });
     abortRef.current = null;
@@ -165,21 +230,26 @@ export function NeuralPanel({ selectedModel, onModelChange, runBuild, generateIm
   const runImage = async (prompt: string) => {
     setBusy(true);
     append({ role: "user", content: prompt });
+    void persist("user", prompt);
+    void maybeAutoTitle(prompt);
     try {
       const imageModel =
         FREE_MODEL_OPTIONS.find((m) => m.id === selectedModel)?.family === "image"
           ? selectedModel
           : DEFAULT_IMAGE_MODEL;
       const { imageUrl, text } = await generateImage(prompt, imageModel);
+      const content = text || (imageUrl ? "Image generated." : "No image returned.");
       append({
         role: "assistant",
-        content: text || (imageUrl ? "Image generated." : "No image returned."),
+        content,
         imageUrl: imageUrl ?? undefined,
       });
+      void persist("assistant", content, imageUrl ?? null, imageModel);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Image gen failed", description: msg, variant: "destructive" });
       append({ role: "assistant", content: `**Error:** ${msg}` });
+      void persist("assistant", `**Error:** ${msg}`);
     } finally {
       setBusy(false);
     }

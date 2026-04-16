@@ -14,7 +14,137 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      conversations: {
+        Row: {
+          archived: boolean
+          created_at: string
+          id: string
+          mode: Database["public"]["Enums"]["chat_mode"]
+          model: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["chat_mode"]
+          model?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["chat_mode"]
+          model?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          image_url: string | null
+          model: string | null
+          role: Database["public"]["Enums"]["message_role"]
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          model?: string | null
+          role: Database["public"]["Enums"]["message_role"]
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          model?: string | null
+          role?: Database["public"]["Enums"]["message_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          github_username: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          github_username?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          github_username?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          accent: Database["public"]["Enums"]["accent_color"]
+          compact_mode: boolean
+          preferred_model: string
+          reasoning_effort: Database["public"]["Enums"]["reasoning_effort"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent?: Database["public"]["Enums"]["accent_color"]
+          compact_mode?: boolean
+          preferred_model?: string
+          reasoning_effort?: Database["public"]["Enums"]["reasoning_effort"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent?: Database["public"]["Enums"]["accent_color"]
+          compact_mode?: boolean
+          preferred_model?: string
+          reasoning_effort?: Database["public"]["Enums"]["reasoning_effort"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +153,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      accent_color: "cyan" | "violet" | "magenta"
+      chat_mode: "neural" | "chat" | "code" | "image"
+      message_role: "user" | "assistant" | "system"
+      reasoning_effort: "low" | "medium" | "high"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +283,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      accent_color: ["cyan", "violet", "magenta"],
+      chat_mode: ["neural", "chat", "code", "image"],
+      message_role: ["user", "assistant", "system"],
+      reasoning_effort: ["low", "medium", "high"],
+    },
   },
 } as const

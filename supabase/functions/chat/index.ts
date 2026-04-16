@@ -19,14 +19,19 @@ const MODE_SYSTEM_PROMPTS: Record<string, string> = {
     "You are the Neural Command interpreter. Help the operator translate intent into terminal commands. Be terse and operational.",
 };
 
+function supportsReasoning(model: string): boolean {
+  return model.startsWith("openai/gpt-5") || model === "google/gemini-3.1-pro-preview" || model === "google/gemini-2.5-pro";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, model, mode } = await req.json() as {
+    const { messages, model, mode, reasoning_effort } = await req.json() as {
       messages: ChatMessage[];
       model?: string;
       mode?: keyof typeof MODE_SYSTEM_PROMPTS;
+      reasoning_effort?: "low" | "medium" | "high";
     };
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -40,17 +45,22 @@ Deno.serve(async (req) => {
     const systemPrompt = MODE_SYSTEM_PROMPTS[mode ?? "chat"] ?? MODE_SYSTEM_PROMPTS.chat;
     const selectedModel = model ?? "google/gemini-3-flash-preview";
 
+    const body: Record<string, unknown> = {
+      model: selectedModel,
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      stream: true,
+    };
+    if (reasoning_effort && supportsReasoning(selectedModel)) {
+      body.reasoning_effort = reasoning_effort;
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
-        stream: true,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
