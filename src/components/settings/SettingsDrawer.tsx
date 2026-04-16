@@ -8,6 +8,7 @@ import { clearMemoryState } from "@/core/memory/store";
 import { toast } from "@/hooks/use-toast";
 
 const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
+  { id: "green", label: "Matrix", swatch: "hsl(135 100% 55%)" },
   { id: "cyan", label: "Cyan", swatch: "hsl(186 100% 55%)" },
   { id: "violet", label: "Violet", swatch: "hsl(268 90% 62%)" },
   { id: "magenta", label: "Magenta", swatch: "hsl(320 95% 60%)" },

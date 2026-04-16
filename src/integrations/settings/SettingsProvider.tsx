@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/auth/AuthProvider";
 
-export type Accent = "cyan" | "violet" | "magenta";
+export type Accent = "green" | "cyan" | "violet" | "magenta";
 export type Effort = "low" | "medium" | "high";
 
 export interface UserSettings {
@@ -13,7 +13,7 @@ export interface UserSettings {
 }
 
 const DEFAULTS: UserSettings = {
-  accent: "cyan",
+  accent: "green",
   compact_mode: false,
   reasoning_effort: "medium",
   preferred_model: "google/gemini-3-flash-preview",
@@ -28,6 +28,7 @@ interface Ctx {
 const SettingsCtx = createContext<Ctx>({ settings: DEFAULTS, loading: true, update: async () => {} });
 
 const ACCENT_HSL: Record<Accent, { primary: string; glow: string; ring: string; border: string }> = {
+  green:   { primary: "135 100% 55%", glow: "130 100% 70%", ring: "135 100% 55%", border: "135 70% 28%" },
   cyan:    { primary: "186 100% 55%", glow: "186 100% 65%", ring: "186 100% 55%", border: "186 70% 30%" },
   violet:  { primary: "268 90% 62%",  glow: "268 90% 72%",  ring: "268 90% 62%",  border: "268 70% 35%" },
   magenta: { primary: "320 95% 60%",  glow: "320 95% 70%",  ring: "320 95% 60%",  border: "320 70% 35%" },

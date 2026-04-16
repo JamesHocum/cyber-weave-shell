@@ -153,7 +153,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      accent_color: "cyan" | "violet" | "magenta"
+      accent_color: "cyan" | "violet" | "magenta" | "green"
       chat_mode: "neural" | "chat" | "code" | "image"
       message_role: "user" | "assistant" | "system"
       reasoning_effort: "low" | "medium" | "high"
@@ -284,7 +284,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      accent_color: ["cyan", "violet", "magenta"],
+      accent_color: ["cyan", "violet", "magenta", "green"],
       chat_mode: ["neural", "chat", "code", "image"],
       message_role: ["user", "assistant", "system"],
       reasoning_effort: ["low", "medium", "high"],
