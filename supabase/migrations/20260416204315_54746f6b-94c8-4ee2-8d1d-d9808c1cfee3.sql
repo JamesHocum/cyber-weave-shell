@@ -1,0 +1,1 @@
+alter type public.accent_color add value if not exists 'green';
