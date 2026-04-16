@@ -151,7 +151,6 @@ All colors MUST be HSL.
     animation: caret-blink 1s steps(2) infinite;
     margin-left: 2px;
   }
-}
 
   /* Neon button system — pulsating glow, glass core */
   .neon-btn {
