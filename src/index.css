@@ -153,13 +153,67 @@ All colors MUST be HSL.
   }
 }
 
+  /* Neon button system — pulsating glow, glass core */
+  .neon-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-widest transition;
+    border-color: hsl(var(--primary) / 0.45);
+    background: linear-gradient(180deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.04));
+    color: hsl(var(--primary));
+    box-shadow: 0 0 0 hsl(var(--primary) / 0);
+  }
+  .neon-btn:hover {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 18px hsl(var(--primary) / 0.55), inset 0 0 12px hsl(var(--primary) / 0.2);
+    color: hsl(var(--primary-glow));
+  }
+  .neon-btn--icon { padding: 0.5rem; }
+  .neon-btn--primary {
+    animation: pulse-glow 2.4s ease-in-out infinite;
+  }
+  .neon-btn--danger {
+    border-color: hsl(var(--destructive) / 0.6);
+    background: linear-gradient(180deg, hsl(var(--destructive) / 0.18), hsl(var(--destructive) / 0.05));
+    color: hsl(var(--destructive));
+  }
+  .neon-btn--danger:hover {
+    box-shadow: 0 0 18px hsl(var(--destructive) / 0.55);
+  }
+
+  .neon-select {
+    @apply rounded-xl border bg-background/70 px-3 py-2 text-xs outline-none transition;
+    border-color: hsl(var(--primary) / 0.35);
+    color: hsl(var(--primary));
+  }
+  .neon-select:focus { border-color: hsl(var(--primary)); box-shadow: 0 0 14px hsl(var(--primary) / 0.4); }
+
+  /* Mode switcher pill */
+  .mode-pill {
+    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest transition;
+    border-color: hsl(var(--primary) / 0.25);
+    background: hsl(var(--background) / 0.5);
+    color: hsl(var(--muted-foreground));
+  }
+  .mode-pill:hover {
+    color: hsl(var(--primary));
+    border-color: hsl(var(--primary) / 0.6);
+    box-shadow: 0 0 12px hsl(var(--primary) / 0.35);
+  }
+  .mode-pill--active {
+    color: hsl(var(--primary-foreground));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 18px hsl(var(--primary) / 0.6), inset 0 0 10px hsl(var(--primary-glow) / 0.4);
+    animation: pulse-glow 2.6s ease-in-out infinite;
+  }
+}
+
 @keyframes caret-blink {
   50% { opacity: 0; }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 12px hsl(var(--primary) / 0.4); }
-  50% { box-shadow: 0 0 24px hsl(var(--primary) / 0.7); }
+  0%, 100% { box-shadow: 0 0 12px hsl(var(--primary) / 0.45), inset 0 0 6px hsl(var(--primary) / 0.15); }
+  50%      { box-shadow: 0 0 28px hsl(var(--primary) / 0.85), inset 0 0 14px hsl(var(--primary) / 0.35); }
 }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
