@@ -16,17 +16,26 @@ import {
 import { executeTerminalInput } from "@/core/terminal/executor";
 import { commandRegistry } from "@/core/commands/registry";
 import type { CommandContext } from "@/core/commands/registry";
+import { useAuth } from "@/integrations/auth/AuthProvider";
+import { useSettings } from "@/integrations/settings/SettingsProvider";
+import {
+  insertMessage,
+  listMessages,
+  touchConversation,
+} from "@/integrations/conversations/api";
 import { Menu, Send, Sparkles, Code2, Image as ImageIcon, Terminal as TerminalIcon, Square } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 type Mode = "neural" | "chat" | "code" | "image";
 
 interface NeuralPanelProps {
+  conversationId: string;
   selectedModel: string;
   onModelChange?: (model: string) => void;
   runBuild?: CommandContext["runBuild"];
   generateImage?: CommandContext["generateImage"];
   onCommandOutput?: (lines: string[]) => void;
+  onTitleUpdate?: () => void;
 }
 
 interface ChatEntry {
@@ -46,22 +55,47 @@ const MODE_META: Record<Mode, { label: string; icon: React.ComponentType<{ class
   image:  { label: "Image",  icon: ImageIcon,    hint: "Generate images with Nano Banana" },
 };
 
-export function NeuralPanel({ selectedModel, onModelChange, runBuild, generateImage: imgFromCtx, onCommandOutput }: NeuralPanelProps) {
+export function NeuralPanel({ conversationId, selectedModel, onModelChange, runBuild, generateImage: imgFromCtx, onCommandOutput, onTitleUpdate }: NeuralPanelProps) {
+  const { user } = useAuth();
+  const { settings } = useSettings();
   const [memory, setMemory] = useState(loadMemoryState());
   const [mode, setMode] = useState<Mode>("neural");
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatEntry[]>([
-    {
-      id: id(),
-      role: "assistant",
-      content:
-        "**Neural interface online.** Switch modes with the bar above. Try `help`, `build android`, or just chat.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatEntry[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted messages when conversation changes
+  useEffect(() => {
+    if (!conversationId) return;
+    listMessages(conversationId)
+      .then((rows) => {
+        if (rows.length === 0) {
+          setMessages([
+            {
+              id: id(),
+              role: "assistant",
+              content:
+                "**Neural interface online.** Switch modes with the bar above. Try `help`, `build android`, or just chat.",
+            },
+          ]);
+        } else {
+          setMessages(
+            rows
+              .filter((r) => r.role !== "system")
+              .map((r) => ({
+                id: r.id,
+                role: r.role as "user" | "assistant",
+                content: r.content,
+                imageUrl: r.image_url ?? undefined,
+              }))
+          );
+        }
+      })
+      .catch((e) => toast({ title: "Failed to load conversation", description: e.message, variant: "destructive" }));
+  }, [conversationId]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
