@@ -10,8 +10,8 @@ export function HeaderBar() {
         </div>
         <div>
           <h1 className="display-font text-sm sm:text-base">
-            <span className="neon-text">HACKER · TERMINAL</span>
-            <span className="ml-2 text-muted-foreground">/ revival</span>
+            <span className="neon-text">VEYL'VIÓRA'S</span>
+            <span className="ml-2 text-primary">HACKER · TERMINAL</span>
           </h1>
           <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
             Cyberpunk Termux · v2026.1 · spellweaver studios

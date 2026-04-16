@@ -10,75 +10,75 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Cyberpunk Termux 2026 — Black-glass + neon */
-    --background: 230 30% 4%;
-    --foreground: 180 100% 92%;
+    /* Cyberpunk Termux 2026 — Matrix-green on black-glass */
+    --background: 140 30% 3%;
+    --foreground: 130 100% 88%;
 
-    --card: 230 30% 6%;
-    --card-foreground: 180 100% 92%;
+    --card: 140 30% 5%;
+    --card-foreground: 130 100% 88%;
 
-    --popover: 230 35% 5%;
-    --popover-foreground: 180 100% 92%;
+    --popover: 140 35% 4%;
+    --popover-foreground: 130 100% 88%;
 
-    --primary: 186 100% 55%;          /* neon cyan */
-    --primary-foreground: 230 40% 4%;
-    --primary-glow: 186 100% 65%;
+    --primary: 135 100% 55%;          /* matrix neon green */
+    --primary-foreground: 140 40% 4%;
+    --primary-glow: 130 100% 70%;
 
-    --secondary: 268 90% 62%;         /* electric violet */
+    --secondary: 268 90% 62%;         /* electric violet (alt accent) */
     --secondary-foreground: 0 0% 100%;
 
-    --accent: 320 95% 60%;            /* magenta */
+    --accent: 320 95% 60%;            /* magenta (alt accent) */
     --accent-foreground: 0 0% 100%;
 
-    --muted: 230 25% 10%;
-    --muted-foreground: 220 15% 60%;
+    --muted: 140 25% 9%;
+    --muted-foreground: 130 20% 60%;
 
-    --destructive: 350 90% 55%;       /* subtle crimson */
+    --destructive: 350 90% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 186 70% 30%;
-    --input: 230 30% 10%;
-    --ring: 186 100% 55%;
+    --border: 135 70% 28%;
+    --input: 140 30% 9%;
+    --ring: 135 100% 55%;
 
     --radius: 1rem;
 
     /* Cyberpunk gradients */
-    --gradient-cyber: linear-gradient(135deg, hsl(186 100% 55% / 0.18), hsl(268 90% 62% / 0.18));
-    --gradient-neon: linear-gradient(90deg, hsl(186 100% 55%), hsl(268 90% 62%), hsl(320 95% 60%));
-    --gradient-glass: linear-gradient(180deg, hsl(230 30% 8% / 0.7), hsl(230 40% 4% / 0.85));
-    --gradient-aurora: radial-gradient(ellipse at top, hsl(268 90% 30% / 0.35), transparent 60%),
-                       radial-gradient(ellipse at bottom right, hsl(186 100% 30% / 0.25), transparent 60%),
-                       radial-gradient(ellipse at bottom left, hsl(320 90% 30% / 0.2), transparent 60%);
+    --gradient-cyber: linear-gradient(135deg, hsl(135 100% 55% / 0.18), hsl(160 100% 50% / 0.18));
+    --gradient-neon: linear-gradient(90deg, hsl(135 100% 55%), hsl(160 100% 50%), hsl(110 100% 60%));
+    --gradient-glass: linear-gradient(180deg, hsl(140 30% 7% / 0.75), hsl(140 40% 3% / 0.9));
+    --gradient-aurora: radial-gradient(ellipse at top, hsl(135 100% 30% / 0.3), transparent 60%),
+                       radial-gradient(ellipse at bottom right, hsl(160 100% 25% / 0.25), transparent 60%),
+                       radial-gradient(ellipse at bottom left, hsl(110 100% 25% / 0.2), transparent 60%);
 
     /* Glows */
-    --glow-cyan: 0 0 20px hsl(186 100% 55% / 0.45), 0 0 40px hsl(186 100% 55% / 0.15);
+    --glow-cyan: 0 0 20px hsl(135 100% 55% / 0.5), 0 0 40px hsl(135 100% 55% / 0.18);
     --glow-violet: 0 0 20px hsl(268 90% 62% / 0.45), 0 0 40px hsl(268 90% 62% / 0.15);
     --glow-magenta: 0 0 20px hsl(320 95% 60% / 0.45);
-    --shadow-glass: 0 20px 60px -20px hsl(230 80% 2% / 0.8), inset 0 1px 0 hsl(186 100% 70% / 0.08);
+    --shadow-glass: 0 20px 60px -20px hsl(140 80% 2% / 0.85), inset 0 1px 0 hsl(135 100% 70% / 0.1);
 
     --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .dark {
-    --background: 230 30% 4%;
-    --foreground: 180 100% 92%;
-    --card: 230 30% 6%;
-    --card-foreground: 180 100% 92%;
-    --popover: 230 35% 5%;
-    --popover-foreground: 180 100% 92%;
-    --primary: 186 100% 55%;
-    --primary-foreground: 230 40% 4%;
+    --background: 140 30% 3%;
+    --foreground: 130 100% 88%;
+    --card: 140 30% 5%;
+    --card-foreground: 130 100% 88%;
+    --popover: 140 35% 4%;
+    --popover-foreground: 130 100% 88%;
+    --primary: 135 100% 55%;
+    --primary-foreground: 140 40% 4%;
     --secondary: 268 90% 62%;
     --secondary-foreground: 0 0% 100%;
     --accent: 320 95% 60%;
     --accent-foreground: 0 0% 100%;
-    --muted: 230 25% 10%;
-    --muted-foreground: 220 15% 60%;
-    --destructive: 350 90% 55%;
+    --muted: 140 25% 9%;
+    --muted-foreground: 130 20% 60%;
+    --destructive: 350 90% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 186 70% 30%;
-    --input: 230 30% 10%;
-    --ring: 186 100% 55%;
+    --border: 135 70% 28%;
+    --input: 140 30% 9%;
+    --ring: 135 100% 55%;
   }
 }
 
