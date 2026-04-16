@@ -33,9 +33,16 @@ export const FREE_MODEL_OPTIONS: AiModelOption[] = [
 export const DEFAULT_MODEL = "google/gemini-3-flash-preview";
 export const DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image";
 
+import { supabase } from "@/integrations/supabase/client";
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`;
 const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+async function authHeader(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  return `Bearer ${data.session?.access_token ?? ANON}`;
+}
 
 export interface StreamChatOptions {
   messages: ChatMessage[];
@@ -54,7 +61,8 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${ANON}`,
+        Authorization: await authHeader(),
+        apikey: ANON,
       },
       body: JSON.stringify({
         messages: options.messages,
@@ -113,7 +121,8 @@ export async function generateImage(prompt: string, model = DEFAULT_IMAGE_MODEL)
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${ANON}`,
+      Authorization: await authHeader(),
+      apikey: ANON,
     },
     body: JSON.stringify({ prompt, model }),
   });
