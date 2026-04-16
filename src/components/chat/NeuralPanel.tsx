@@ -132,9 +132,32 @@ export function NeuralPanel({ conversationId, selectedModel, onModelChange, runB
     setBusy(false);
   };
 
+  const persist = async (
+    role: "user" | "assistant",
+    content: string,
+    imageUrl?: string | null,
+    model?: string | null
+  ) => {
+    if (!user || !conversationId) return;
+    try {
+      await insertMessage({ conversationId, userId: user.id, role, content, imageUrl, model });
+    } catch (e) {
+      console.error("persist failed", e);
+    }
+  };
+
+  const maybeAutoTitle = async (firstUserText: string) => {
+    if (!user || !conversationId || messages.length > 1) return;
+    const title = firstUserText.slice(0, 60).trim() || "New session";
+    await touchConversation(conversationId, { title, mode, model: selectedModel });
+    onTitleUpdate?.();
+  };
+
   const runCommand = async (raw: string) => {
     setBusy(true);
     append({ role: "user", content: raw });
+    void persist("user", raw);
+    void maybeAutoTitle(raw);
     const next = pushRecentCommand(raw);
     setMemory(next);
 
@@ -152,9 +175,13 @@ export function NeuralPanel({ conversationId, selectedModel, onModelChange, runB
         ...(exec.result.logs ?? []),
       ];
       onCommandOutput?.(lines);
-      append({ role: "assistant", content: "```\n" + lines.join("\n") + "\n```" });
+      const reply = "```\n" + lines.join("\n") + "\n```";
+      append({ role: "assistant", content: reply });
+      void persist("assistant", reply);
     } catch (e) {
-      append({ role: "assistant", content: `**Error:** ${e instanceof Error ? e.message : String(e)}` });
+      const msg = `**Error:** ${e instanceof Error ? e.message : String(e)}`;
+      append({ role: "assistant", content: msg });
+      void persist("assistant", msg);
     } finally {
       setBusy(false);
     }
@@ -163,6 +190,8 @@ export function NeuralPanel({ conversationId, selectedModel, onModelChange, runB
   const runChatStream = async (raw: string, requestedMode: "chat" | "code" | "neural") => {
     setBusy(true);
     append({ role: "user", content: raw });
+    void persist("user", raw);
+    void maybeAutoTitle(raw);
 
     const history: ChatMessage[] = messages
       .filter((m) => !m.imageUrl)
@@ -177,6 +206,7 @@ export function NeuralPanel({ conversationId, selectedModel, onModelChange, runB
       messages: history,
       model: selectedModel,
       mode: requestedMode,
+      reasoningEffort: settings.reasoning_effort,
       signal: ctrl.signal,
       onDelta: (chunk) => {
         assembled += chunk;
@@ -190,6 +220,7 @@ export function NeuralPanel({ conversationId, selectedModel, onModelChange, runB
         setMessages((prev) =>
           prev.map((m, i) => (i === prev.length - 1 ? { ...m, _streaming: false } : m))
         );
+        if (assembled) void persist("assistant", assembled, null, selectedModel);
       },
     });
     abortRef.current = null;
@@ -199,21 +230,26 @@ export function NeuralPanel({ conversationId, selectedModel, onModelChange, runB
   const runImage = async (prompt: string) => {
     setBusy(true);
     append({ role: "user", content: prompt });
+    void persist("user", prompt);
+    void maybeAutoTitle(prompt);
     try {
       const imageModel =
         FREE_MODEL_OPTIONS.find((m) => m.id === selectedModel)?.family === "image"
           ? selectedModel
           : DEFAULT_IMAGE_MODEL;
       const { imageUrl, text } = await generateImage(prompt, imageModel);
+      const content = text || (imageUrl ? "Image generated." : "No image returned.");
       append({
         role: "assistant",
-        content: text || (imageUrl ? "Image generated." : "No image returned."),
+        content,
         imageUrl: imageUrl ?? undefined,
       });
+      void persist("assistant", content, imageUrl ?? null, imageModel);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Image gen failed", description: msg, variant: "destructive" });
       append({ role: "assistant", content: `**Error:** ${msg}` });
+      void persist("assistant", `**Error:** ${msg}`);
     } finally {
       setBusy(false);
     }
